@@ -421,12 +421,14 @@ void setup() {
   Serial.begin(9600);
   lcd.begin(16, 2);
 
+  EEPROM.get(0, settings);
+
   pinMode(JOYSTICK_X_PIN, INPUT);
   pinMode(JOYSTICK_Y_PIN, INPUT);
   pinMode(JOYSTICK_SW_PIN, INPUT_PULLUP);
 
   lc.shutdown(0, false);                 // turn off power saving, enables display
-  lc.setIntensity(0, matrixBrightness);  // sets brightness (0~15 possible values)
+  realTimeUpdate();
   lc.clearDisplay(0);                    // clear screen
 
   lcd.createChar(1, INDICATOR_IMG);
@@ -439,12 +441,10 @@ void setup() {
   lcd.createChar(0, EDIT_MODE);
 
   pinMode(3, OUTPUT);
-  //pinMode(11, OUTPUT);
+  pinMode(11, OUTPUT);
 
-  analogWrite(3, 200);
-  //analogWrite(11, 49);
-
-  EEPROM.get(0, settings);
+  // analogWrite(3, 800); // contrast
+  // analogWrite(11, 400); // baclight
 
   //gameIntro();
 }
@@ -623,6 +623,11 @@ void updateSettingsValues(short& value, int lowThreshold, int highThreshold) {
   }
 }
 
+void realTimeUpdate(){
+  lc.setIntensity(0, map(settings.matrBright, 1, 9, 1, 15));
+  analogWrite(11, map(settings.lcdBright, 1, 9, 0, 255));
+  analogWrite(3, map(settings.lcdContrs, 1, 9, 0, 180));
+}
 
 void settingsUpdate() {
   String settingMessage = "";
@@ -723,7 +728,9 @@ void settingsManager() {
       case SOUND_STATE:
         updateSettingsValues(settings.sound, SOUND_LOW_BOUND, SOUND_HIGH_BOUND);
         break;
+
     }
+    realTimeUpdate();
   }
 
   if (inputAxisY != JOYSTICK_STILL or inputSW != JOYSTICK_SW_OFF) {
@@ -986,8 +993,6 @@ void gameOver() {
 
     case 1:
       if (millis() - gameOverTimer >= 5000) {
-        lc.clearDisplay(0);
-
         // TBA - check if it is highscore
 
         bool isHighscore = true;
