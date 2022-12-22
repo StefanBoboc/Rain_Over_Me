@@ -64,8 +64,8 @@
 
 #define HOW_TO_PLAY_STATE 4
 #define HOW_TO_PLAY_TITLE "HOW TO PLAY"
-#define HOW_TO_PLAY_TEXT "Global warming strongly affects the environment, and one of the problems is drought. You are a plant trying to survive by catching as many raindrops as possible. Every drop you miss will lower your hydration and result in a game over. With every minute you survive you will get bonus drops. If you catch 5 drops in a row, you can press click and the plant will grow to catch more drops. Good luck! / "
-#define HOW_TO_PLAY_TEXT_LENGTH 399
+#define HOW_TO_PLAY_TEXT "You are a plant trying to survive by catching as many raindrops as possible moving from right to left. Every drop you miss will lower your hydration and result in a game over. With every minute you survive you will get bonus drops. If you catch 5 drops in a row, you can press click and the plant will grow to catch more drops. Good luck! / "
+#define HOW_TO_PLAY_TEXT_LENGTH 340
 
 #define LCD_PIN_COUNT 16
 
