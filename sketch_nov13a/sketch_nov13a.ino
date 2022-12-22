@@ -268,6 +268,7 @@ void setMatrixIcon(byte image[]) {
   }
 }
 
+
 /*-----GAME INTRO-----*/
 const String welcomeMsg[] = { "Welcome to", "RAIN OVER ME" };
 void gameIntro() {
@@ -409,27 +410,38 @@ void displayMenuSetup(String title, bool backArrow, bool indicator) {
 }
 
 struct settingsStruct {
-  char name[8];
-  short difficulty;
-  short lcdContrs;
-  short lcdBright;
-  short matrBright;
-  short sound;
+  char name[8] = "CORINA  ";
+  int8_t difficulty = 1;
+  int8_t lcdContrs = 4;
+  int8_t lcdBright = 4;
+  int8_t matrBright = 4;
+  int8_t sound = 1;
 } settings;
+
+/*-----BUZZER-----*/
+int buzzer =A2;
 
 void setup() {
   Serial.begin(9600);
   lcd.begin(16, 2);
 
+
   EEPROM.get(0, settings);
+
+  Serial.println(settings.name);
+  Serial.println(settings.difficulty);
+  Serial.println(settings.lcdContrs);
+  Serial.println(settings.lcdBright);
+  Serial.println(settings.matrBright);
+  Serial.println(settings.sound);
 
   pinMode(JOYSTICK_X_PIN, INPUT);
   pinMode(JOYSTICK_Y_PIN, INPUT);
   pinMode(JOYSTICK_SW_PIN, INPUT_PULLUP);
 
   lc.shutdown(0, false);                 // turn off power saving, enables display
-  realTimeUpdate();
   lc.clearDisplay(0);                    // clear screen
+  pinMode(buzzer, OUTPUT);
 
   lcd.createChar(1, INDICATOR_IMG);
   lcd.createChar(2, TOP_SCROLLBAR);
@@ -441,12 +453,21 @@ void setup() {
   lcd.createChar(0, EDIT_MODE);
 
   pinMode(3, OUTPUT);
-  pinMode(11, OUTPUT);
+  pinMode(11, OUTPUT); 
+  pinMode(A2, OUTPUT); 
 
   // analogWrite(3, 800); // contrast
   // analogWrite(11, 400); // baclight
 
+  realTimeUpdate();
   //gameIntro();
+
+}
+
+void buzzerManager(){
+  //if(settings.sound == 1){
+    tone(buzzer, 20, 20);
+  //}
 }
 
 /*-----MENU-----*/
@@ -614,7 +635,7 @@ void updateName() {
   changeLetter();
 }
 
-void updateSettingsValues(short& value, int lowThreshold, int highThreshold) {
+void updateSettingsValues(int8_t& value, int lowThreshold, int highThreshold) {
   if (inputAxisY == 1 and value < highThreshold) {
     value = value + 1;
   }
@@ -876,7 +897,7 @@ void playerMovement() {
 
   unsigned int currentMillis = millis();
 
-  if (joystickX != 0 and currentMillis - previousPlayerMillis >= currentDifficulty.playerSpeed)  //test whether the period has elapsed
+  if (joystickX != 0 and currentMillis - previousPlayerMillis >= currentDifficulty.playerSpeed)  
   {
 
     if (powerupEnabled == false){
@@ -896,7 +917,7 @@ void playerMovement() {
       }
     }
 
-    previousPlayerMillis = currentMillis;  //IMPORTANT to save the start time of the current LED state.
+    previousPlayerMillis = currentMillis;  
   }
 }
 
@@ -913,6 +934,7 @@ void raindropMovement() {
       if (player.column == raindrop.column and player.row == raindrop.row) {
         raindropCounter += currentDifficulty.raindropCaught;
         raindropCombo += 1;
+        //buzzerManager();
       } else if (player.column != raindrop.column and 7 == raindrop.row) {
         raindropCounter += currentDifficulty.raindropMissed;
         raindropCombo = 0;
@@ -921,6 +943,7 @@ void raindropMovement() {
     else{
       if ((player.column == raindrop.column and player.row == raindrop.row) or (player.column + 1 == raindrop.column and player.row == raindrop.row)) {
         raindropCounter += currentDifficulty.raindropCaught;
+        //buzzerManager();
       } else if ((player.column != raindrop.column and 7 == raindrop.row) or (player.column + 1 != raindrop.column and 7 == raindrop.row)) {
         raindropCounter += currentDifficulty.raindropMissed;
       }
