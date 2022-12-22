@@ -1,41 +1,3 @@
-/*
-0123456789012345
-   Welcome to
-  RAIN OVER ME
-0123456789012345
-      MENU     
->Start game    +
->Highscores    +
->Settings      +
->About         +
->How to play   +
------
-0123456789012345
--  HIGHSCORES  
-1 STEFAN 99999 +
-2 Play2  99999 +
-3 Play3  99999 +
-4 Play4  99999 +
-5 Play5  99999 +
------
-0123456789012345
--   SETTINGS
->Name: STEFAN  +
->Difficulty: 3 +
->LCD contrs: 9 +
->LCD bright: 5 +
->Mat bright: 5 +
->Sound: ON/OFF +
------
-0123456789012345
--    ABOUT
-CATCH THE EGGS by Stefan Boboc, StefanBoboc on GitHub / 
------
-0123456789012345
-- HOW TO PLAY
-Descriere...
-*/
-
 #include <LiquidCrystal.h>
 #include <LedControl.h>
 #include <EEPROM.h>
@@ -97,13 +59,13 @@ Descriere...
 
 #define ABOUT_STATE 3
 #define ABOUT_TITLE "ABOUT"
-#define ABOUT_TEXT "RAIN OVER ME by Stefan Boboc, StefanBoboc on GitHub / "
-#define ABOUT_TEXT_LENGTH 53
+#define ABOUT_TEXT "RAIN OVER ME by Stefan Boboc, https://github.com/StefanBoboc / "
+#define ABOUT_TEXT_LENGTH 62
 
 #define HOW_TO_PLAY_STATE 4
 #define HOW_TO_PLAY_TITLE "HOW TO PLAY"
-#define HOW_TO_PLAY_TEXT "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book / "
-#define HOW_TO_PLAY_TEXT_LENGTH 245
+#define HOW_TO_PLAY_TEXT "Global warming strongly affects the environment, and one of the problems is drought. You are a plant trying to survive by catching as many raindrops as possible. Every drop you miss will lower your hydration and result in a game over. With every minute you survive you will get bonus drops. If you catch 5 drops in a row, you can press click and the plant will grow to catch more drops. Good luck! / "
+#define HOW_TO_PLAY_TEXT_LENGTH 399
 
 #define LCD_PIN_COUNT 16
 
@@ -425,15 +387,7 @@ void setup() {
   Serial.begin(9600);
   lcd.begin(16, 2);
 
-
   EEPROM.get(0, settings);
-
-  Serial.println(settings.name);
-  Serial.println(settings.difficulty);
-  Serial.println(settings.lcdContrs);
-  Serial.println(settings.lcdBright);
-  Serial.println(settings.matrBright);
-  Serial.println(settings.sound);
 
   pinMode(JOYSTICK_X_PIN, INPUT);
   pinMode(JOYSTICK_Y_PIN, INPUT);
@@ -460,7 +414,7 @@ void setup() {
   // analogWrite(11, 400); // baclight
 
   realTimeUpdate();
-  //gameIntro();
+  gameIntro();
 
 }
 
