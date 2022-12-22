@@ -796,6 +796,8 @@ Tm:01.23 Rain:xx
 
 int8_t gameState;
 int8_t gameOverState;
+int8_t checkBonusState;
+int8_t checkPowerupStatus;
 
 struct entityPosition {
   int8_t column;
@@ -807,9 +809,12 @@ int8_t raindropCombo;
 int8_t raindropsMax;
 
 unsigned long gameStartTime;
-unsigned long startRaindropMillis;
-unsigned long startPlayerMillis;
+unsigned long previousRaindropMillis;
+unsigned long previousPlayerMillis;
+unsigned long previousBonusMillis;
 unsigned long gameOverTimer;
+unsigned long minutesPassedBonusSignal;
+unsigned long minutesPassedPowerup;
 
 struct difficultyLevel {
   char name;
@@ -826,6 +831,12 @@ difficultyLevel currentDifficulty;
 
 int8_t minutesScore;
 int8_t secondsScore;
+
+int8_t minutesPassFosBonus; 
+
+bool blinkBonus;
+bool powerupEnabled;
+
 
 void printLPaddZero(int8_t valueToBePadd, int8_t cursorColPos, int8_t cursorRowPos) {
   lcd.setCursor(cursorColPos, cursorRowPos);
@@ -848,37 +859,64 @@ void formatTimeScore(unsigned long timeScoreMillis, int8_t* addMinutes, int8_t* 
 }
 
 void playerMovement() {
-  lc.setLed(0, player.row, player.column, true);
+  if (powerupEnabled == false){
+    lc.setLed(0, player.row, player.column, true);
+  }
+  else{
+    lc.setLed(0, player.row, player.column, true);
+    lc.setLed(0, player.row, player.column+1, true);
+  }
 
   unsigned int currentMillis = millis();
 
-  if (joystickX != 0 and currentMillis - startPlayerMillis >= currentDifficulty.playerSpeed)  //test whether the period has elapsed
+  if (joystickX != 0 and currentMillis - previousPlayerMillis >= currentDifficulty.playerSpeed)  //test whether the period has elapsed
   {
-    if ((joystickX == -1 and 0 < player.column) or (joystickX == 1 and player.column < 7)) {
-      lc.setLed(0, player.row, player.column, false);
-      player.column += joystickX;
-      lc.setLed(0, player.row, player.column, true);
+
+    if (powerupEnabled == false){
+      if ((joystickX == -1 and 0 < player.column) or (joystickX == 1 and player.column < 7)) {
+        lc.setLed(0, player.row, player.column, false);
+        player.column += joystickX;
+        lc.setLed(0, player.row, player.column, true);
+      }
+    }
+    else {
+      if ((joystickX == -1 and 0 < player.column) or (joystickX == 1 and player.column < 6)) {
+        lc.setLed(0, player.row, player.column, false);
+        lc.setLed(0, player.row, player.column + 1, false);
+        player.column += joystickX;
+        lc.setLed(0, player.row, player.column, true);
+        lc.setLed(0, player.row, player.column+1, true);
+      }
     }
 
-    startPlayerMillis = currentMillis;  //IMPORTANT to save the start time of the current LED state.
+    previousPlayerMillis = currentMillis;  //IMPORTANT to save the start time of the current LED state.
   }
 }
 
 void raindropMovement() {
   unsigned int currentMillis = millis();
 
-  if (currentMillis - startRaindropMillis >= currentDifficulty.raindropSpeed)  //test whether the period has elapsed
+  if (currentMillis - previousRaindropMillis >= currentDifficulty.raindropSpeed)  //test whether the period has elapsed
   {
     lc.setLed(0, raindrop.row, raindrop.column, false);
     raindrop.row++;
     lc.setLed(0, raindrop.row, raindrop.column, true);
 
-    if (player.column == raindrop.column and player.row == raindrop.row) {
-      raindropCounter += currentDifficulty.raindropCaught;
-      raindropCombo += 1;
-    } else if (player.column != raindrop.column and 7 == raindrop.row) {
-      raindropCounter += currentDifficulty.raindropMissed;
-      raindropCombo = 0;
+    if (powerupEnabled == false){
+      if (player.column == raindrop.column and player.row == raindrop.row) {
+        raindropCounter += currentDifficulty.raindropCaught;
+        raindropCombo += 1;
+      } else if (player.column != raindrop.column and 7 == raindrop.row) {
+        raindropCounter += currentDifficulty.raindropMissed;
+        raindropCombo = 0;
+      }
+    }
+    else{
+      if ((player.column == raindrop.column and player.row == raindrop.row) or (player.column + 1 == raindrop.column and player.row == raindrop.row)) {
+        raindropCounter += currentDifficulty.raindropCaught;
+      } else if ((player.column != raindrop.column and 7 == raindrop.row) or (player.column + 1 != raindrop.column and 7 == raindrop.row)) {
+        raindropCounter += currentDifficulty.raindropMissed;
+      }
     }
 
     if (raindrop.row == 8) {
@@ -886,7 +924,7 @@ void raindropMovement() {
       raindrop.column = random(0, 8);
     }
 
-    startRaindropMillis = currentMillis;  //IMPORTANT to save the start time of the current LED state.
+    previousRaindropMillis = currentMillis;  //IMPORTANT to save the start time of the current LED state.
   }
 }
 
@@ -983,8 +1021,8 @@ void setupGameParameters() {
   raindropsMax = 0;
 
   gameStartTime = millis();
-  startPlayerMillis = 0;
-  startRaindropMillis = 0;
+  previousPlayerMillis = 0;
+  previousRaindropMillis = 0;
 
   switch (settings.difficulty) {
     case 1:
@@ -999,6 +1037,14 @@ void setupGameParameters() {
       currentDifficulty = hardDifficulty;
       break;
   }
+
+  minutesPassFosBonus = 1;
+
+  blinkBonus = true;
+  powerupEnabled = false;
+
+  checkBonusState = 0;
+  checkPowerupStatus = 0;
 }
 
 void displayGameTextStats() {
@@ -1051,6 +1097,81 @@ void changeDifficulty(){
   }
 }
 
+void checkBonus(){
+  switch (checkBonusState){
+    case 0:
+      if (minutesScore >= minutesPassFosBonus){
+        minutesPassFosBonus += 1;
+        raindropCounter += 3;
+
+        minutesPassedBonusSignal = millis();
+        checkBonusState = 1;
+      }
+      break;
+
+    case 1:      
+        unsigned long currentMillis = millis();
+        if (currentMillis - previousBonusMillis >= 500){
+          
+          if (blinkBonus == true){
+            lcd.setCursor(8,0);
+            lcd.print("+");
+            blinkBonus = false;
+          }
+          else {
+            lcd.setCursor(8,0);
+            lcd.print(" ");
+            blinkBonus = true;
+          }
+          previousBonusMillis = currentMillis;
+        }
+
+        if ( millis() - minutesPassedBonusSignal >= 3000 ){
+          previousBonusMillis = 0;
+          checkBonusState = 0;
+        }
+
+       break; 
+  }
+}
+
+void checkPowerup(){
+  switch(checkPowerupStatus){
+    case 0:
+      if (raindropCombo >= 5){
+        lcd.setCursor(8, 1);
+        lcd.print("*");
+
+        checkPowerupStatus = 1;
+      }
+      break;
+    
+    case 1:
+      if (inputSW == JOYSTICK_SW_ON) {
+        powerupEnabled = true;
+
+        minutesPassedPowerup = millis();
+        checkPowerupStatus = 2;
+      }
+      break;
+
+    case 2:
+      if(millis() - minutesPassedPowerup >= 10000){
+        powerupEnabled = false;
+
+        lcd.setCursor(8, 1);
+        lcd.print(" ");
+
+        // we make sure that the second lit led is 100% off when the powerup stops
+        lc.setLed(0, player.row, player.column + 1, false);
+
+        raindropCombo = 0;
+        checkPowerupStatus = 0;
+      }
+      break;
+  }
+}
+
 void startGameManager() {
   switch (gameState) {
     case 0:
@@ -1070,6 +1191,8 @@ void startGameManager() {
       displayGamePlayerStats();
       getRaindropsMax();
       changeDifficulty();
+      checkBonus();
+      checkPowerup();
 
       if (raindropCounter <= 0) {
         gameState = 2;
