@@ -93,7 +93,7 @@ though
 
 ---
 
-## **Video showcasing functionality.** [here](https://youtu.be/E_nb-XMdPQE) TBA
+## **Video showcasing functionality.** [here](https://youtu.be/E_nb-XMdPQE)
 
 ---
 
