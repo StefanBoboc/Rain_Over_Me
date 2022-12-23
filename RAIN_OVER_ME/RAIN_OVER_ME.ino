@@ -2,16 +2,22 @@
 #include <LedControl.h>
 #include <EEPROM.h>
 
+/*-----CONSTANTS-----*/
+#define LOAD_PIN A2
+#define DIN_PIN 13
+#define CLOCK_PIN 12
+
 #define RS 9
 #define EN 8
 #define D4 7
-#define D5 3   // 6
-#define D6 11  // 5
+#define D5 3
+#define D6 11
 #define D7 4
 
 #define JOYSTICK_X_PIN A0
 #define JOYSTICK_Y_PIN A1
 #define JOYSTICK_SW_PIN 2
+#define BUZZER_PIN 10
 
 #define JOYSTICK_MIN_TRESHOLD 400
 #define JOYSTICK_MAX_TRESHOLD 600
@@ -70,7 +76,17 @@
 #define LCD_PIN_COUNT 16
 #define INT_MAX 2147483646
 
-byte INDICATOR_IMG[8] = {
+#define EDIT_MODE_CHARACTER 0
+#define INDICATOR_CHARACTER 1
+#define TOP_SCROLLBAR_CHARACTER 2
+#define MIDDEL_SCROLLBAR_CHARACTER 3
+#define BOTTOM_SCROLLBAR_CHARACTER 4
+// #define O 5
+// #define N 6
+// #define F 7
+
+//-----LCD CUSTOM CHARACTER-----*/
+const byte indicatorCharacter[8] = {
   B10000,
   B11000,
   B11100,
@@ -81,7 +97,7 @@ byte INDICATOR_IMG[8] = {
   B00000
 };
 
-byte TOP_SCROLLBAR[8] = {
+const byte topScrollbarCharacter[8] = {
   0b11111,
   0b11111,
   0b00100,
@@ -92,7 +108,7 @@ byte TOP_SCROLLBAR[8] = {
   0b00100
 };
 
-byte MIDDEL_SCROLLBAR[8] = {
+const byte middleScrollbarCharacter[8] = {
   0b00100,
   0b00100,
   0b00100,
@@ -103,7 +119,7 @@ byte MIDDEL_SCROLLBAR[8] = {
   0b00100
 };
 
-byte BOTTOM_SCROLLBAR[8] = {
+const byte bottomScrollbarCharacter[8] = {
   0b00100,
   0b00100,
   0b00100,
@@ -114,7 +130,7 @@ byte BOTTOM_SCROLLBAR[8] = {
   0b11111
 };
 
-byte EDIT_MODE[8] = {
+const byte editModeCharacter[8] = {
   B00100,
   B00100,
   B00100,
@@ -125,7 +141,7 @@ byte EDIT_MODE[8] = {
   B00100
 };
 
-byte O[8] = {
+const byte O[8] = {
   B11111,
   B11111,
   B10001,
@@ -136,7 +152,7 @@ byte O[8] = {
   B11111
 };
 
-byte N[8] = {
+const byte N[8] = {
   B11111,
   B11111,
   B01001,
@@ -147,7 +163,7 @@ byte N[8] = {
   B11111
 };
 
-byte F[8] = {
+const byte F[8] = {
   B11001,
   B10110,
   B10111,
@@ -158,53 +174,61 @@ byte F[8] = {
   B11111
 };
 
-/*------------------------*/
-
-byte menuIcons[][8] = {
-
-  { B00111000,
+/*-----MATRIX ICONS -----*/
+const byte matrix_icons[][8] = {
+  { 
+    B00111000,
     B01111110,
     B11111111,
     B01111110,
     B00000000,
     B01001001,
     B10010010,
-    B00000000 },
-  { B00111100,
+    B00000000 
+  },
+  { 
+    B00111100,
     B11111111,
     B10111101,
     B10111101,
     B01111110,
     B00111100,
     B00011000,
-    B00111100 },
-  { B00100100,
+    B00111100 
+  },
+  { 
+    B00100100,
     B01100110,
     B01100110,
     B01111110,
     B00111100,
     B00011000,
     B00011000,
-    B00011000 },
-  { B00011000,
+    B00011000 
+  },
+  { 
+    B00011000,
     B00011000,
     B00000000,
     B00111000,
     B00011000,
     B00011000,
     B00011000,
-    B00111100 },
-  { B00111100,
+    B00111100 
+  },
+  { 
+    B00111100,
     B01111110,
     B01100110,
     B00001100,
     B00011000,
     B00011000,
     B00000000,
-    B00011000 }
+    B00011000 
+  }
 };
 
-byte gameOverIcon[8] = {
+const byte GAME_OVER_ICON[8] = {
   B00111100,
   B01111110,
   B10011001,
@@ -215,22 +239,9 @@ byte gameOverIcon[8] = {
   B01011010
 };
 
+/*----AAAAAAA-----*/
 LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
-
-const byte dinPin = 13;
-const byte clockPin = 12;
-const byte loadPin = A2;
-const byte matrixSize = 8;
-
-LedControl lc = LedControl(dinPin, clockPin, loadPin, 1);  //DIN, CLK, LOAD, No. DRIVER
-byte matrixBrightness = 2;
-
-void setMatrixIcon(byte image[]) {
-  for (int i = 0; i < 8; i++) {
-    lc.setRow(0, i, image[i]);
-  }
-}
-
+LedControl lc = LedControl(DIN_PIN, CLOCK_PIN, LOAD_PIN, 1);
 
 /*-----GAME INTRO-----*/
 const String welcomeMsg[] = { "Welcome to", "RAIN OVER ME" };
@@ -248,7 +259,15 @@ void gameIntro() {
   delay(3000);
 }
 
+void displayMatrixIcon(byte image[]) {
+  for (int i = 0; i < 8; i++) {
+    lc.setRow(0, i, image[i]);
+  }
+}
+
 /*-----TAKE JOYSTICK INPUT-----*/
+
+// 
 int8_t joystickX;
 int8_t joystickY;
 bool joystickSW;
@@ -260,8 +279,6 @@ void joystickReading() {
   readJoystickX = analogRead(JOYSTICK_X_PIN);
   readJoystickY = analogRead(JOYSTICK_Y_PIN);
   bool readJoystickSW = digitalRead(JOYSTICK_SW_PIN);
-
-
 
   if (JOYSTICK_MIN_TRESHOLD <= readJoystickX && readJoystickX <= JOYSTICK_MAX_TRESHOLD) {
     joystickX = JOYSTICK_STILL;
@@ -387,10 +404,10 @@ struct highscoreStruct {
   unsigned long score = 0;
 } highscorePlayers[highscoreItemsCount], highscorePlayersSorted[highscoreItemsCount];
 
-void highscoreSorter(){
-  for (int i = 0; i < highscoreItemsCount - 1; i++){
-    for (int j = i+1; j < highscoreItemsCount; j++){
-      if (highscorePlayersSorted[i].score <  highscorePlayersSorted[j].score){
+void sortHighscore() {
+  for (int i = 0; i < highscoreItemsCount - 1; i++) {
+    for (int j = i + 1; j < highscoreItemsCount; j++) {
+      if (highscorePlayersSorted[i].score < highscorePlayersSorted[j].score) {
         char tempName[7];
         strcpy(tempName, highscorePlayersSorted[i].name);
         strcpy(highscorePlayersSorted[i].name, highscorePlayersSorted[j].name);
@@ -405,75 +422,36 @@ void highscoreSorter(){
   }
 }
 
-void copyHighscore(){
-  for (int i = 0; i < highscoreItemsCount; i++){
+void copyHighscore() {
+  for (int i = 0; i < highscoreItemsCount; i++) {
     strcpy(highscorePlayersSorted[i].name, highscorePlayers[i].name);
     highscorePlayersSorted[i].score = highscorePlayers[i].score;
   }
 }
 
-/*-----BUZZER-----*/
-int buzzer = 10;
-
-void setup() {
-  Serial.begin(9600);
-  lcd.begin(16, 2);
-
-  EEPROM.get(0, settings);
-  EEPROM.get(100, highscorePlayers);
-  copyHighscore();
-  highscoreSorter();
-
-  pinMode(JOYSTICK_X_PIN, INPUT);
-  pinMode(JOYSTICK_Y_PIN, INPUT);
-  pinMode(JOYSTICK_SW_PIN, INPUT_PULLUP);
-
-  lc.shutdown(0, false);  // turn off power saving, enables display
-  lc.clearDisplay(0);     // clear screen
-  pinMode(buzzer, OUTPUT);
-
-  lcd.createChar(1, INDICATOR_IMG);
-  lcd.createChar(2, TOP_SCROLLBAR);
-  lcd.createChar(3, MIDDEL_SCROLLBAR);
-  lcd.createChar(4, BOTTOM_SCROLLBAR);
-  lcd.createChar(5, O);
-  lcd.createChar(6, N);
-  lcd.createChar(7, F);
-  lcd.createChar(0, EDIT_MODE);
-
-  pinMode(6, OUTPUT);  // 3
-  pinMode(5, OUTPUT);  // 11
-
-  // analogWrite(3, 800); // contrast
-  // analogWrite(11, 400); // baclight
-
-  realTimeUpdate();
-  // gameIntro();
-}
-
 unsigned long millisScore;
 
 /*-----HIGHSCORE-----*/
-bool checkHighscore(){
+bool checkHighscore() {
   unsigned long minScore = INT_MAX;
   int8_t minPlayerIndex;
 
-  for (int8_t index = 0; index < highscoreItemsCount; index++){
-    if (highscorePlayers[index].score < minScore ){
+  for (int8_t index = 0; index < highscoreItemsCount; index++) {
+    if (highscorePlayers[index].score < minScore) {
       minScore = highscorePlayers[index].score;
       minPlayerIndex = index;
     }
   }
   // Serial.println(highscorePlayers[minPlayerIndex].score);
   // Serial.println(millisScore);
-  if (highscorePlayers[minPlayerIndex].score < millisScore){
+  if (highscorePlayers[minPlayerIndex].score < millisScore) {
     strcpy(highscorePlayers[minPlayerIndex].name, settings.name);
     highscorePlayers[minPlayerIndex].score = millisScore;
 
     EEPROM.put(100, highscorePlayers);
 
     copyHighscore();
-    highscoreSorter();
+    sortHighscore();
 
     return true;
   }
@@ -483,21 +461,20 @@ bool checkHighscore(){
 
 
 int8_t raindropPointBuzz;
-void buzzerManager(){
-  if (settings.sound == true){
-    if (state != START_GAME_STATE){
+void buzzerManager() {
+  if (settings.sound == true) {
+    if (state != START_GAME_STATE) {
       if (inputAxisX != 0 or inputAxisY != 0 or inputSW != 0) {
-        tone(buzzer, 4000, 100);
+        tone(BUZZER_PIN, 4000, 100);
       }
-    }
-    else {
-      switch(raindropPointBuzz){
+    } else {
+      switch (raindropPointBuzz) {
         case 1:
-          tone(buzzer, 4000, 100);
+          tone(BUZZER_PIN, 4000, 100);
           break;
-        
+
         case 2:
-          tone(buzzer, 100, 100);
+          tone(BUZZER_PIN, 100, 100);
           break;
       }
       raindropPointBuzz = 0;
@@ -522,7 +499,7 @@ void menuUpdate() {
 void matrixUpdate() {
   lc.shutdown(0, false);
   lc.clearDisplay(0);
-  setMatrixIcon(menuIcons[menuItemPosition]);
+  displayMatrixIcon(matrix_icons[menuItemPosition]);
 }
 
 bool needToUpdate = true;
@@ -675,7 +652,7 @@ void updateSettingsValues(int8_t& value, int lowThreshold, int highThreshold) {
   }
 }
 
-void realTimeUpdate() {
+void applySettings() {
   lc.setIntensity(0, map(settings.matrBright, 1, 9, 1, 15));
   analogWrite(5, map(settings.lcdBright, 1, 9, 0, 255));  // 11
   analogWrite(6, map(settings.lcdContrs, 1, 9, 0, 180));  // 3
@@ -782,7 +759,7 @@ void settingsManager() {
         updateSettingsValues(settings.sound, SOUND_LOW_BOUND, SOUND_HIGH_BOUND);
         break;
     }
-    realTimeUpdate();
+    applySettings();
   }
 
   if (inputAxisY != JOYSTICK_STILL or inputSW != JOYSTICK_SW_OFF) {
@@ -1038,7 +1015,7 @@ void gameOver() {
     case 0:
       lc.clearDisplay(0);
 
-      setMatrixIcon(gameOverIcon);
+      displayMatrixIcon(GAME_OVER_ICON);
 
       displayGameOverCongrats();
 
@@ -1082,7 +1059,7 @@ void setupGameParameters() {
   raindrop.column = random(0, 8);
   raindrop.row = -1;
 
-  raindropCounter = 10; //10
+  raindropCounter = 10;  //10
   raindropCombo = 0;
   raindropsMax = 0;
 
@@ -1142,7 +1119,7 @@ void displayGamePlayerStats() {
 
   printLPaddZero(raindropCombo, 6, 1);
 
-  millisScore = millis() - gameStartTime;  
+  millisScore = millis() - gameStartTime;
   formatTimeScore(millisScore, &minutesScore, &secondsScore);
   printLPaddZero(minutesScore, 11, 1);
   printLPaddZero(secondsScore, 14, 1);
@@ -1262,7 +1239,7 @@ void startGameManager() {
 
       if (raindropCounter <= 0) {
         gameState = 2;
-        tone(buzzer, 200, 2000);
+        tone(BUZZER_PIN, 200, 2000);
       }
       break;
 
@@ -1278,6 +1255,42 @@ void startGameManager() {
       }
       break;
   }
+}
+
+void setup() {
+  Serial.begin(9600);
+  lcd.begin(16, 2);
+
+  pinMode(JOYSTICK_X_PIN, INPUT);
+  pinMode(JOYSTICK_Y_PIN, INPUT);
+  pinMode(JOYSTICK_SW_PIN, INPUT_PULLUP);
+  pinMode(BUZZER_PIN, OUTPUT);
+
+  // configure LCD  
+  lc.shutdown(0, false);
+  lc.clearDisplay(0);  
+
+  // create lcd custom characters
+  lcd.createChar(EDIT_MODE_CHARACTER, editModeCharacter);
+  lcd.createChar(INDICATOR_CHARACTER, indicatorCharacter);
+  lcd.createChar(TOP_SCROLLBAR_CHARACTER, topScrollbarCharacter);
+  lcd.createChar(MIDDEL_SCROLLBAR_CHARACTER, middleScrollbarCharacter);
+  lcd.createChar(BOTTOM_SCROLLBAR_CHARACTER, bottomScrollbarCharacter);
+  lcd.createChar(5, O);
+  lcd.createChar(6, N);
+  lcd.createChar(7, F);
+
+  // get settings saved on EEPROM and aply them
+  EEPROM.get(0, settings);
+  applySettings();
+
+  // get high scores saved to EEPROM and copy them to display sorted
+  EEPROM.get(100, highscorePlayers);
+  copyHighscore();
+  sortHighscore();
+
+  // show game intro
+  gameIntro();
 }
 
 void loop() {

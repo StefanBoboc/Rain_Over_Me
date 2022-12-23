@@ -93,7 +93,7 @@ though
 
 ---
 
-## **Video showcasing functionality.** [here](https://youtu.be/AADY6tSfnSc) TBA
+## **Video showcasing functionality.** [here](https://youtu.be/E_nb-XMdPQE) TBA
 
 ---
 
@@ -108,7 +108,7 @@ Hence the name of the *Rain Over Me* project. A name that is also inspired by Pi
 The idea of the game started from a simple internet search for project ideas. I found a simpler version of a game where you had to catch a light passing through the matrix using a potentiometer. I found the idea interesting, but a bit simplistic because the potentiometer was much more accurate in movement and then easy to control. So I combined this game with some superpowers, replaced the potentiometer with a joystick, and suddenly the game became much more challenging.
 
 ## **How to play.**
-TBA
+At the bottom of the matrix there will be a dot always on. It can be moved left or right with the joystick. You have to catch as many raindrops falling from above as possible. For every drop you catch you will get extra Drops, but for every drop you miss you will lose Drops depending on the difficulty you are on. At five drops caught you will get a powerup that will increase your player to catch more drops. This can be activated with a click.
 
 ### **Process explanation.** ([code](./RAIN_OVER_ME/RAIN_OVER_ME.ino))
 TBA
