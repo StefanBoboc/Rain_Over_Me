@@ -68,6 +68,7 @@
 #define HOW_TO_PLAY_TEXT_LENGTH 340
 
 #define LCD_PIN_COUNT 16
+#define INT_MAX 2147483646
 
 byte INDICATOR_IMG[8] = {
   B10000,
@@ -372,13 +373,44 @@ void displayMenuSetup(String title, bool backArrow, bool indicator) {
 }
 
 struct settingsStruct {
-  char name[8] = "CORINA  ";
+  char name[7] = "STEFAN";
   int8_t difficulty = 1;
   int8_t lcdContrs = 4;
   int8_t lcdBright = 4;
   int8_t matrBright = 4;
   int8_t sound = 1;
 } settings;
+
+const int8_t highscoreItemsCount = 5;
+struct highscoreStruct {
+  char name[7] = "NONAME";
+  unsigned long score = 0;
+} highscorePlayers[highscoreItemsCount], highscorePlayersSorted[highscoreItemsCount];
+
+void highscoreSorter(){
+  for (int i = 0; i < highscoreItemsCount - 1; i++){
+    for (int j = i+1; j < highscoreItemsCount; j++){
+      if (highscorePlayersSorted[i].score <  highscorePlayersSorted[j].score){
+        char tempName[7];
+        strcpy(tempName, highscorePlayersSorted[i].name);
+        strcpy(highscorePlayersSorted[i].name, highscorePlayersSorted[j].name);
+        strcpy(highscorePlayersSorted[j].name, tempName);
+
+        unsigned long tempScore;
+        tempScore = highscorePlayersSorted[i].score;
+        highscorePlayersSorted[i].score = highscorePlayersSorted[j].score;
+        highscorePlayersSorted[j].score = tempScore;
+      }
+    }
+  }
+}
+
+void copyHighscore(){
+  for (int i = 0; i < highscoreItemsCount; i++){
+    strcpy(highscorePlayersSorted[i].name, highscorePlayers[i].name);
+    highscorePlayersSorted[i].score = highscorePlayers[i].score;
+  }
+}
 
 /*-----BUZZER-----*/
 int buzzer = 10;
@@ -388,8 +420,9 @@ void setup() {
   lcd.begin(16, 2);
 
   EEPROM.get(0, settings);
-
-
+  EEPROM.get(100, highscorePlayers);
+  copyHighscore();
+  highscoreSorter();
 
   pinMode(JOYSTICK_X_PIN, INPUT);
   pinMode(JOYSTICK_Y_PIN, INPUT);
@@ -418,25 +451,36 @@ void setup() {
   // gameIntro();
 }
 
-// int buzzerState;
-// unsigned long previousBuzzerMillis;
-// void buzzerManager() {
-//   if (settings.sound == 1) {
-//     switch (buzzerState) {
-//       case 1:
-//         tone(buzzer, 100);
-//         buzzerState = 0;
-//         previousBuzzerMillis = millis();
-//         break;
-//       case 0:
-//         if (millis() - previousBuzzerMillis >= 50) {
-//           noTone(buzzer);
-//           buzzerState = 2;
-//         }
-//         break;
-//     }
-//   }
-// }
+unsigned long millisScore;
+
+/*-----HIGHSCORE-----*/
+bool checkHighscore(){
+  unsigned long minScore = INT_MAX;
+  int8_t minPlayerIndex;
+
+  for (int8_t index = 0; index < highscoreItemsCount; index++){
+    if (highscorePlayers[index].score < minScore ){
+      minScore = highscorePlayers[index].score;
+      minPlayerIndex = index;
+    }
+  }
+  // Serial.println(highscorePlayers[minPlayerIndex].score);
+  // Serial.println(millisScore);
+  if (highscorePlayers[minPlayerIndex].score < millisScore){
+    strcpy(highscorePlayers[minPlayerIndex].name, settings.name);
+    highscorePlayers[minPlayerIndex].score = millisScore;
+
+    EEPROM.put(100, highscorePlayers);
+
+    copyHighscore();
+    highscoreSorter();
+
+    return true;
+  }
+
+  return false;
+}
+
 
 int8_t raindropPointBuzz;
 void buzzerManager(){
@@ -508,14 +552,9 @@ void mainMenuManager() {
   }
 }
 
-/*-----HIGHSCORES-----*/
-const int8_t highscoreItemsCount = 5;
+// /*-----HIGHSCORES-----*/
+// const int8_t highscoreItemsCount = 5;
 int8_t highscoreItemPosition = 0;
-
-struct highscoreStruct {
-  char name[7];
-  int score;
-} highscorePlayers[highscoreItemsCount] = { { "GEORGE", 12345 }, { "ANDREI", 1234 }, { "TEODOR", 123 }, { "IOANAA", 12 }, { "CORINA", 1 } };
 
 void highscoreUpdate() {
   char buffer[5];
@@ -526,11 +565,11 @@ void highscoreUpdate() {
   lcd.print(highscoreItemPosition + 1);
 
   lcd.setCursor(2, 1);
-  lcd.print(highscorePlayers[highscoreItemPosition].name);
+  lcd.print(highscorePlayersSorted[highscoreItemPosition].name);
 
   lcd.setCursor(9, 1);
-  sprintf(buffer, "%05d", highscorePlayers[highscoreItemPosition].score);
-  lcd.print(buffer);
+  //sprintf(buffer, "%05d", highscorePlayers[highscoreItemPosition].score);
+  lcd.print(highscorePlayersSorted[highscoreItemPosition].score);
 
   displayMenuScrollbar(highscoreItemsCount, highscoreItemPosition);
 }
@@ -651,6 +690,7 @@ void settingsUpdate() {
   switch (settingsItemPosition) {
     case NAME_STATE:
       settingMessage.concat(settings.name);
+      settingMessage.concat(' ');
       break;
     case DIFFICULTY_STATE:
       settingMessage.concat(settings.difficulty);
@@ -848,6 +888,7 @@ struct difficultyLevel {
 
 difficultyLevel currentDifficulty;
 
+// unsigned long millisScore;
 int8_t minutesScore;
 int8_t secondsScore;
 
@@ -962,6 +1003,7 @@ void gameOverScreen(String text1, String text2) {
 }
 
 void displayGameOverCongrats() {
+  lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Good job ");
   lcd.print(settings.name);
@@ -972,6 +1014,7 @@ void displayGameOverCongrats() {
 }
 
 void displayGameOverHighscore() {
+  lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("HIGHSCORE! ");
 
@@ -981,6 +1024,7 @@ void displayGameOverHighscore() {
 }
 
 void displayGameOverNoHighscore() {
+  lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Time: ");
 
@@ -1005,11 +1049,16 @@ void gameOver() {
 
     case 1:
       if (millis() - gameOverTimer >= 5000) {
-        // TBA - check if it is highscore
+        bool isHighscore;
+        isHighscore = checkHighscore();
 
-        bool isHighscore = true;
+        Serial.println(isHighscore);
+
         if (isHighscore == true) {
           displayGameOverHighscore();
+
+
+
         } else {
           displayGameOverNoHighscore();
         }
@@ -1033,7 +1082,7 @@ void setupGameParameters() {
   raindrop.column = random(0, 8);
   raindrop.row = -1;
 
-  raindropCounter = 10;
+  raindropCounter = 10; //10
   raindropCombo = 0;
   raindropsMax = 0;
 
@@ -1093,7 +1142,8 @@ void displayGamePlayerStats() {
 
   printLPaddZero(raindropCombo, 6, 1);
 
-  formatTimeScore(millis() - gameStartTime, &minutesScore, &secondsScore);
+  millisScore = millis() - gameStartTime;  
+  formatTimeScore(millisScore, &minutesScore, &secondsScore);
   printLPaddZero(minutesScore, 11, 1);
   printLPaddZero(secondsScore, 14, 1);
 }
@@ -1212,9 +1262,7 @@ void startGameManager() {
 
       if (raindropCounter <= 0) {
         gameState = 2;
-        tone(buzzer, 400, 1000);
-        noTone(buzzer);
-        tone(buzzer, 200, 1000);
+        tone(buzzer, 200, 2000);
       }
       break;
 
